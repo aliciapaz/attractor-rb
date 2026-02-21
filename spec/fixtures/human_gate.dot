@@ -1,0 +1,21 @@
+digraph Review {
+    rankdir=LR
+
+    start [shape=Mdiamond, label="Start"]
+    exit  [shape=Msquare, label="Exit"]
+
+    review_gate [
+        shape=hexagon,
+        label="Review Changes",
+        type="wait.human"
+    ]
+
+    ship_it [shape=box, prompt="Ship the changes"]
+    fixes   [shape=box, prompt="Apply fixes"]
+
+    start -> review_gate
+    review_gate -> ship_it [label="[A] Approve"]
+    review_gate -> fixes   [label="[F] Fix"]
+    ship_it -> exit
+    fixes -> exit
+}
