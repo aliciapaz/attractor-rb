@@ -5,13 +5,20 @@ module Attractor
     class ClaudeCodeBackend < CodergenBackend
       DEFAULT_TIMEOUT = 300 # 5 minutes
 
-      def initialize(timeout: DEFAULT_TIMEOUT)
+      def initialize(timeout: DEFAULT_TIMEOUT, permission_mode: "bypassPermissions")
         @timeout = timeout
+        @permission_mode = permission_mode
       end
 
       def run(node, prompt, _context)
         stdout, stderr, status = Timeout.timeout(@timeout) do
-          Open3.capture3("claude", "--print", prompt)
+          env = {"CLAUDECODE" => nil}
+          Open3.capture3(
+            env,
+            "claude", "--print",
+            "--permission-mode", @permission_mode,
+            prompt
+          )
         end
 
         if status.success?
