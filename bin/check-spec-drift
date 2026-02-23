@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Compares the pinned spec commit against upstream HEAD.
+# Run periodically or in CI to detect spec changes.
+#
+# Usage: bin/check-spec-drift
+
+set -euo pipefail
+
+CONFORMANCE="$(dirname "$0")/../CONFORMANCE.md"
+PINNED_COMMIT=$(grep 'Pinned commit' "$CONFORMANCE" | grep -oE '[0-9a-f]{40}')
+UPSTREAM_HEAD=$(gh api repos/strongdm/attractor/commits --jq '.[0].sha')
+
+if [ "$PINNED_COMMIT" = "$UPSTREAM_HEAD" ]; then
+  echo "Spec is up to date (${PINNED_COMMIT:0:8})"
+  exit 0
+fi
+
+echo "Spec has drifted!"
+echo "  Pinned:   $PINNED_COMMIT"
+echo "  Upstream: $UPSTREAM_HEAD"
+echo ""
+echo "Changes since pinned commit:"
+gh api "repos/strongdm/attractor/compare/${PINNED_COMMIT}...${UPSTREAM_HEAD}" \
+  --jq '.commits[] | "  \(.sha[0:8]) \(.commit.message | split("\n")[0])"'
+echo ""
+echo "Changed files:"
+gh api "repos/strongdm/attractor/compare/${PINNED_COMMIT}...${UPSTREAM_HEAD}" \
+  --jq '.files[] | "  \(.status)\t\(.filename)"'
+exit 1

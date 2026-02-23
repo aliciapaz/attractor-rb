@@ -29,6 +29,12 @@ gem install attractor-rb
 
 Requires Ruby >= 4.0.0.
 
+### Runtime prerequisites
+
+- `simulation` backend: no external CLI dependency
+- `claude` backend: `claude` CLI must be installed, available on `PATH`, and authenticated
+- Optional: Graphviz (`dot`) for rendering DOT files as diagrams
+
 ## Quick Start
 
 **1. Define a pipeline** as a DOT file (`pipeline.dot`):
@@ -62,6 +68,8 @@ attractor validate pipeline.dot
 ```sh
 attractor run pipeline.dot
 ```
+
+This creates `./logs` by default with per-node prompts, responses, statuses, and a checkpoint file for resume.
 
 **4. Execute with Claude Code:**
 
@@ -223,6 +231,16 @@ Selectors: `*` (all nodes), `#node_id` (by ID), `.class-name` (by class).
 
 Validate a pipeline without executing it. Reports errors, warnings, and info diagnostics. Exits non-zero if errors are found.
 
+## Run Artifacts
+
+Each run writes files under `--logs-root` (default `./logs`):
+
+- `manifest.json` -- run metadata (`name`, `goal`, start timestamp)
+- `checkpoint.json` -- resumable engine state
+- `<node_id>/prompt.md` -- rendered prompt sent to the backend (LLM nodes)
+- `<node_id>/response.md` -- backend response (LLM nodes)
+- `<node_id>/status.json` -- normalized `Outcome` for the node
+
 ## Programmatic Usage
 
 ```ruby
@@ -332,7 +350,7 @@ The validator runs 13 built-in rules before execution:
 git clone https://github.com/aliciapaz/attractor-rb.git
 cd attractor-rb
 bundle install
-bundle exec rspec        # run tests (316 specs)
+bundle exec rspec        # run tests
 bundle exec standardrb   # lint
 ```
 
