@@ -26,7 +26,7 @@ RSpec.describe Attractor::Handlers::CodergenHandler do
     it "expands $goal in prompt" do
       handler.execute(node, context, graph, logs_root)
       prompt_content = File.read(File.join(logs_root, "plan", "prompt.md"))
-      expect(prompt_content).to eq("Plan the Build a feature")
+      expect(prompt_content).to include("Plan the Build a feature")
     end
 
     it "writes response.md to logs directory" do
@@ -56,6 +56,16 @@ RSpec.describe Attractor::Handlers::CodergenHandler do
       outcome = handler.execute(node, context, graph, logs_root)
       expect(outcome.context_updates["last_response"]).to include("[Simulated]")
     end
+
+    it "sets context_updates with last_codergen_node" do
+      outcome = handler.execute(node, context, graph, logs_root)
+      expect(outcome.context_updates["last_codergen_node"]).to eq("plan")
+    end
+
+    it "sets context_updates with last_codergen_prompt_summary" do
+      outcome = handler.execute(node, context, graph, logs_root)
+      expect(outcome.context_updates["last_codergen_prompt_summary"]).to include("Plan the Build a feature")
+    end
   end
 
   describe "without a backend (simulation mode)" do
@@ -81,7 +91,58 @@ RSpec.describe Attractor::Handlers::CodergenHandler do
     it "uses label as prompt fallback" do
       handler.execute(node, context, graph, logs_root)
       prompt_content = File.read(File.join(logs_root, "review", "prompt.md"))
-      expect(prompt_content).to eq("Review the code")
+      expect(prompt_content).to include("Review the code")
+    end
+  end
+
+  describe "preamble integration" do
+    let(:backend) { Attractor::Backends::SimulationBackend.new }
+    let(:handler) { described_class.new(backend: backend) }
+    let(:node) { Attractor::Node.new("implement", "shape" => "box", "label" => "Implement", "prompt" => "Write the code") }
+
+    context "when prior context exists" do
+      before do
+        context.set("last_stage", "plan")
+        context.set("outcome", "success")
+      end
+
+      it "prepends preamble to prompt" do
+        handler.execute(node, context, graph, logs_root)
+        prompt_content = File.read(File.join(logs_root, "implement", "prompt.md"))
+        expect(prompt_content).to include("## Context from prior stages")
+        expect(prompt_content).to include("## Current task")
+        expect(prompt_content).to include("Write the code")
+      end
+
+      it "includes goal in preamble" do
+        handler.execute(node, context, graph, logs_root)
+        prompt_content = File.read(File.join(logs_root, "implement", "prompt.md"))
+        expect(prompt_content).to include("Goal: Build a feature")
+      end
+    end
+
+    context "when file_listing is in context" do
+      before do
+        context.set("file_listing", "app/models/user.rb\napp/controllers/users_controller.rb")
+      end
+
+      it "includes file listing section in prompt" do
+        handler.execute(node, context, graph, logs_root)
+        prompt_content = File.read(File.join(logs_root, "implement", "prompt.md"))
+        expect(prompt_content).to include("## Current project files")
+        expect(prompt_content).to include("app/models/user.rb")
+      end
+    end
+
+    context "when no prior context exists and fidelity is full" do
+      let(:node) { Attractor::Node.new("start_code", "shape" => "box", "label" => "Start", "prompt" => "Begin", "fidelity" => "full") }
+
+      it "does not include preamble section" do
+        handler.execute(node, context, graph, logs_root)
+        prompt_content = File.read(File.join(logs_root, "start_code", "prompt.md"))
+        expect(prompt_content).not_to include("## Context from prior stages")
+        expect(prompt_content).to include("## Current task")
+      end
     end
   end
 end

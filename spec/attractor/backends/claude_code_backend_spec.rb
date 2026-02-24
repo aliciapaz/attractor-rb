@@ -58,6 +58,59 @@ RSpec.describe Attractor::Backends::ClaudeCodeBackend do
           .to raise_error(Attractor::Backends::ClaudeCodeBackend::Error, /timed out after 10s/)
       end
     end
+
+    context "when context has file_listing" do
+      it "prepends file listing to prompt" do
+        context.set("file_listing", "app/models/user.rb\napp/controllers/users_controller.rb")
+        status = instance_double(Process::Status, success?: true)
+        stub_popen3(stdout: "response", status: status)
+
+        backend = described_class.new
+        backend.run(node, "Build a feature", context)
+
+        expect(Open3).to have_received(:popen3).with(
+          {"CLAUDECODE" => nil},
+          "claude", "--print",
+          "--permission-mode", "bypassPermissions",
+          "Current project files:\napp/models/user.rb\napp/controllers/users_controller.rb\n\nBuild a feature"
+        )
+      end
+    end
+
+    context "when context has no file_listing" do
+      it "passes prompt unmodified" do
+        status = instance_double(Process::Status, success?: true)
+        stub_popen3(stdout: "response", status: status)
+
+        backend = described_class.new
+        backend.run(node, "Build a feature", context)
+
+        expect(Open3).to have_received(:popen3).with(
+          {"CLAUDECODE" => nil},
+          "claude", "--print",
+          "--permission-mode", "bypassPermissions",
+          "Build a feature"
+        )
+      end
+    end
+
+    context "when context does not respond to get" do
+      it "passes prompt unmodified" do
+        plain_context = Object.new
+        status = instance_double(Process::Status, success?: true)
+        stub_popen3(stdout: "response", status: status)
+
+        backend = described_class.new
+        backend.run(node, "Build a feature", plain_context)
+
+        expect(Open3).to have_received(:popen3).with(
+          {"CLAUDECODE" => nil},
+          "claude", "--print",
+          "--permission-mode", "bypassPermissions",
+          "Build a feature"
+        )
+      end
+    end
   end
 
   def stub_popen3(stdout: "", stderr: "", status:)

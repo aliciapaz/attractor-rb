@@ -75,6 +75,9 @@ require_relative "attractor/interviewer/callback"
 require_relative "attractor/interviewer/queue"
 require_relative "attractor/interviewer/recording"
 
+# Process Management
+require_relative "attractor/process_helper"
+
 # Handlers
 require_relative "attractor/handlers/base_handler"
 require_relative "attractor/handlers/handler_registry"
