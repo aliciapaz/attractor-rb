@@ -75,6 +75,9 @@ require_relative "attractor/interviewer/callback"
 require_relative "attractor/interviewer/queue"
 require_relative "attractor/interviewer/recording"
 
+# Process Management
+require_relative "attractor/process_helper"
+
 # Handlers
 require_relative "attractor/handlers/base_handler"
 require_relative "attractor/handlers/handler_registry"
@@ -91,6 +94,7 @@ require_relative "attractor/handlers/manager_loop_handler"
 # Backends
 require_relative "attractor/codergen_backend"
 require_relative "attractor/backends/claude_code_backend"
+require_relative "attractor/backends/codex_backend"
 require_relative "attractor/backends/simulation_backend"
 
 # Execution Engine

@@ -53,6 +53,8 @@ module Attractor
           Backends::SimulationBackend.new
         when "claude"
           Backends::ClaudeCodeBackend.new
+        when "codex"
+          Backends::CodexBackend.new
         else
           Backends::SimulationBackend.new
         end
