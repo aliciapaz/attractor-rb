@@ -11,15 +11,14 @@ module Attractor
       end
 
       def run(node, prompt, _context)
-        stdout, stderr, status = Timeout.timeout(@timeout) do
-          env = {"CLAUDECODE" => nil}
-          Open3.capture3(
-            env,
-            "claude", "--print",
-            "--permission-mode", @permission_mode,
-            prompt
-          )
-        end
+        env = {"CLAUDECODE" => nil}
+        stdout, stderr, status = capture3_with_timeout(
+          @timeout,
+          env,
+          "claude", "--print",
+          "--permission-mode", @permission_mode,
+          prompt
+        )
 
         if status.success?
           stdout

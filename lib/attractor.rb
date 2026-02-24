@@ -91,6 +91,7 @@ require_relative "attractor/handlers/manager_loop_handler"
 # Backends
 require_relative "attractor/codergen_backend"
 require_relative "attractor/backends/claude_code_backend"
+require_relative "attractor/backends/codex_backend"
 require_relative "attractor/backends/simulation_backend"
 
 # Execution Engine

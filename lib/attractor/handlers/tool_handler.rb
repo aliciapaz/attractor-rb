@@ -43,12 +43,15 @@ module Attractor
 
       private
 
-      # Runs command via shell. DOT files that use tool_command are trusted
-      # input — the pipeline author controls what commands run, similar to
-      # a Makefile or CI config. Do not run untrusted DOT files.
+      # Runs command via shell with a clean Bundler environment.
+      # Bundler env vars (BUNDLE_GEMFILE, RUBYOPT) from the parent
+      # process would interfere with commands like `rails new` or
+      # `bundle install` that need their own Gemfile context.
       def execute_command(command, timeout)
         Timeout.timeout(timeout) do
-          Open3.capture3("sh", "-c", command)
+          Bundler.with_unbundled_env do
+            Open3.capture3("sh", "-c", command)
+          end
         end
       rescue Timeout::Error
         raise StandardError, "Command timed out after #{timeout}s"
