@@ -10,15 +10,14 @@ module Attractor
         @permission_mode = permission_mode
       end
 
-      def run(node, prompt, context)
-        full_prompt = prepend_file_listing(prompt, context)
+      def run(node, prompt, _context)
         env = {"CLAUDECODE" => nil}
         stdout, stderr, status = capture3_with_timeout(
           @timeout,
           env,
           "claude", "--print",
           "--permission-mode", @permission_mode,
-          full_prompt
+          prompt
         )
 
         if status.success?
@@ -33,15 +32,6 @@ module Attractor
       end
 
       private
-
-      def prepend_file_listing(prompt, context)
-        return prompt unless context.respond_to?(:get)
-
-        listing = context.get("file_listing")
-        return prompt unless listing && !listing.empty?
-
-        "Current project files:\n#{listing}\n\n#{prompt}"
-      end
 
       class Error < StandardError; end
     end
