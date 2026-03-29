@@ -42,6 +42,18 @@ RSpec.describe Attractor::Cli::RunCommand do
     end
 
     context "backend selection" do
+      it "selects codex backend when requested" do
+        options = {logs_root: logs_root, backend: "codex", interviewer: "auto_approve", resume: false}
+        command = described_class.new(dotfile_path, options)
+
+        allow(Attractor::Backends::CodexBackend)
+          .to receive(:new)
+          .and_return(Attractor::Backends::SimulationBackend.new)
+
+        expect { command.execute }.to output(/Pipeline completed successfully/).to_stdout
+        expect(Attractor::Backends::CodexBackend).to have_received(:new)
+      end
+
       it "defaults to simulation backend for unknown values" do
         options = {logs_root: logs_root, backend: "unknown", interviewer: "auto_approve", resume: false}
         command = described_class.new(dotfile_path, options)

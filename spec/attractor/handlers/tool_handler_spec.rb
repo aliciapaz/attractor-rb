@@ -61,4 +61,57 @@ RSpec.describe Attractor::Handlers::ToolHandler do
       expect(outcome.context_updates["tool.output"]).to include("line2")
     end
   end
+
+  describe "file listing capture" do
+    context "when tool_command includes a trigger command" do
+      # Use "echo bundle" so the command succeeds and contains a trigger word
+      let(:node) { Attractor::Node.new("bundle_tool", "shape" => "parallelogram", "tool_command" => "echo bundle exec done") }
+
+      it "captures file listing in context after success" do
+        allow(Open3).to receive(:capture3)
+          .with("find . -name '*.rb' -not -path './vendor/*' -not -path './node_modules/*' | sort | head -200")
+          .and_return(["app/models/user.rb\napp/controllers/users_controller.rb\n", "", instance_double(Process::Status)])
+
+        handler.execute(node, context, graph, logs_root)
+
+        expect(context.get("file_listing")).to eq("app/models/user.rb\napp/controllers/users_controller.rb")
+      end
+    end
+
+    context "when tool_command includes rails" do
+      let(:node) { Attractor::Node.new("rails_tool", "shape" => "parallelogram", "tool_command" => "echo rails generate done") }
+
+      it "triggers file listing capture" do
+        allow(Open3).to receive(:capture3)
+          .with("find . -name '*.rb' -not -path './vendor/*' -not -path './node_modules/*' | sort | head -200")
+          .and_return(["app/models/user.rb\n", "", instance_double(Process::Status)])
+
+        handler.execute(node, context, graph, logs_root)
+
+        expect(context.get("file_listing")).to eq("app/models/user.rb")
+      end
+    end
+
+    context "when tool_command does not include a trigger" do
+      let(:node) { Attractor::Node.new("echo_tool", "shape" => "parallelogram", "tool_command" => "echo hello") }
+
+      it "does not capture file listing" do
+        handler.execute(node, context, graph, logs_root)
+        expect(context.get("file_listing")).to be_nil
+      end
+    end
+
+    context "when file listing capture fails" do
+      let(:node) { Attractor::Node.new("bundle_tool", "shape" => "parallelogram", "tool_command" => "echo bundle install done") }
+
+      it "does not fail the tool execution" do
+        allow(Open3).to receive(:capture3)
+          .with("find . -name '*.rb' -not -path './vendor/*' -not -path './node_modules/*' | sort | head -200")
+          .and_raise(StandardError, "find not available")
+
+        outcome = handler.execute(node, context, graph, logs_root)
+        expect(outcome.status).to eq(Attractor::StageStatus::SUCCESS)
+      end
+    end
+  end
 end

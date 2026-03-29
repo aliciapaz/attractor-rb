@@ -32,6 +32,7 @@ Requires Ruby >= 4.0.0.
 ### Runtime prerequisites
 
 - `simulation` backend: no external CLI dependency
+- `codex` backend: `codex` CLI must be installed, available on `PATH`, and authenticated
 - `claude` backend: `claude` CLI must be installed, available on `PATH`, and authenticated
 - Optional: Graphviz (`dot`) for rendering DOT files as diagrams
 
@@ -71,7 +72,13 @@ attractor run pipeline.dot
 
 This creates `./logs` by default with per-node prompts, responses, statuses, and a checkpoint file for resume.
 
-**4. Execute with Claude Code:**
+**4. Execute with Codex:**
+
+```sh
+attractor run pipeline.dot --backend codex --interviewer console
+```
+
+**Claude compatibility (optional):**
 
 ```sh
 attractor run pipeline.dot --backend claude --interviewer console
@@ -223,13 +230,26 @@ Selectors: `*` (all nodes), `#node_id` (by ID), `.class-name` (by class).
 | Option | Default | Description |
 |---|---|---|
 | `--logs-root` | `./logs` | Directory for logs, artifacts, and checkpoints |
-| `--backend` | `simulation` | LLM backend: `simulation` or `claude` |
+| `--backend` | `simulation` | LLM backend: `simulation`, `codex`, or `claude` |
 | `--interviewer` | `auto_approve` | Human gate mode: `auto_approve` or `console` |
 | `--resume` | `false` | Resume from last checkpoint |
 
 ### `attractor validate DOTFILE`
 
 Validate a pipeline without executing it. Reports errors, warnings, and info diagnostics. Exits non-zero if errors are found.
+
+### Codex Backend Configuration
+
+`Attractor::Backends::CodexBackend` supports a minimal environment-based configuration surface:
+
+- `ATTRACTOR_CODEX_MODEL` -- passed as `codex exec --model`
+- `ATTRACTOR_CODEX_PROFILE` -- passed as `codex exec --profile`
+- `ATTRACTOR_CODEX_SANDBOX` -- passed as `codex exec --sandbox` (ignored when dangerous bypass is enabled)
+- `ATTRACTOR_CODEX_FULL_AUTO` -- enables/disables `--full-auto` (default: enabled)
+- `ATTRACTOR_CODEX_DANGEROUS_BYPASS` -- enables `--dangerously-bypass-approvals-and-sandbox` (default: disabled)
+- `ATTRACTOR_CODEX_TIMEOUT` -- backend timeout in seconds (default: `300`)
+
+The backend invokes `codex exec --output-last-message` and records only the final assistant message in node response artifacts.
 
 ## Run Artifacts
 
@@ -241,12 +261,14 @@ Each run writes files under `--logs-root` (default `./logs`):
 - `<node_id>/response.md` -- backend response (LLM nodes)
 - `<node_id>/status.json` -- normalized `Outcome` for the node
 
+For `tool` nodes, commands run via `Bundler.with_unbundled_env` to avoid leaking parent Bundler/Gemfile context into subprocesses.
+
 ## Programmatic Usage
 
 ```ruby
 require "attractor"
 
-backend = Attractor::Backends::ClaudeCodeBackend.new(timeout: 600)
+backend = Attractor::Backends::CodexBackend.new(timeout: 600)
 interviewer = Attractor::Interviewer::Console.new
 
 engine = Attractor::Engine.new(
